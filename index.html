@@ -574,6 +574,8 @@ async function saveListing() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     const shareUrl = `${location.origin}${location.pathname}?id=${id}`;
+    sharedView = true;
+    renderThumbs();
     try {
       await navigator.clipboard.writeText(shareUrl);
       showToast("Link copied to clipboard!");
