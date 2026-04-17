@@ -541,11 +541,21 @@ async function loadFromUrl() {
   if (!appReady) return;
   const id = new URLSearchParams(location.search).get("id");
   if (!id) return;
-  showToast("Loading shared listing…");
+  const banner = document.getElementById("shared-banner");
+  banner.style = "";
+  banner.innerHTML = "&#9203; Loading shared listing&hellip;";
+  banner.classList.add("visible");
   try {
-    const doc = await db.collection("listings").doc(id).get();
-    if (!doc.exists) { showToast("Listing not found.", true); return; }
-    const data = doc.data();
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out after 15 seconds")), 15000)
+    );
+    const snap = await Promise.race([db.collection("listings").doc(id).get(), timeout]);
+    if (!snap.exists) {
+      banner.innerHTML = "&#10060; Listing not found.";
+      banner.style.background = "#fff0f0"; banner.style.borderColor = "#e8a0a0"; banner.style.color = "#B12704";
+      return;
+    }
+    const data = snap.data();
     document.getElementById("prod-title").value = data.title || "";
     document.getElementById("prod-brand").value = data.brand || "";
     document.getElementById("prod-price").value = data.price || "";
@@ -564,10 +574,11 @@ async function loadFromUrl() {
     renderThumbs();
     showMain(colors[0].activeImg);
     document.getElementById("active-color-label").textContent = colors[0].name;
-    document.getElementById("shared-banner").classList.add("visible");
-    showToast("Shared listing loaded!");
+    banner.innerHTML = "&#128065; You are viewing a shared listing &mdash; click <strong>Reset</strong> to start fresh.";
+    banner.style = "";
   } catch (err) {
-    showToast("Failed to load listing: " + err.message, true);
+    banner.innerHTML = "&#10060; Failed to load: " + err.message;
+    banner.style.background = "#fff0f0"; banner.style.borderColor = "#e8a0a0"; banner.style.color = "#B12704";
   }
 }
 </script>
