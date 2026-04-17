@@ -261,7 +261,7 @@ const firebaseConfig = {
 // ── ImgBB (free image hosting — get your key at imgbb.com) ───────────────────
 const IMGBB_API_KEY = "96095dca044f6a5a5a021a60ac39555d";
 
-const appReady = firebaseConfig.apiKey !== "96095dca044f6a5a5a021a60ac39555d" && IMGBB_API_KEY !== "96095dca044f6a5a5a021a60ac39555d";
+const appReady = true;
 let db;
 if (appReady) {
   firebase.initializeApp(firebaseConfig);
