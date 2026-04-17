@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Listing Preview Tool</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f3f3; color: #111; min-height: 100vh; padding: 24px; }
+h1.page-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px; letter-spacing: -0.01em; }
+.wrap { max-width: 980px; margin: 0 auto; }
+.toolbar { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.toolbar h2 { font-size: 11px; font-weight: 600; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.07em; }
+.toolbar-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: #666; font-weight: 500; }
+.field input, .field select {
+  font-size: 13px; padding: 7px 10px;
+  border: 1px solid #ccc; border-radius: 6px;
+  background: #fafafa; color: #111;
+  outline: none; transition: border-color 0.15s;
+}
+.field input:focus { border-color: #e47911; background: #fff; }
+.btn { padding: 7px 16px; border: 1px solid #ccc; border-radius: 6px; background: #fff; color: #111; font-size: 13px; cursor: pointer; transition: background 0.12s; }
+.btn:hover { background: #f5f5f5; }
+.btn-primary { background: #e47911; color: #fff; border-color: #c96e0d; font-weight: 600; }
+.btn-primary:hover { background: #c96e0d; }
+.listing { display: grid; grid-template-columns: 76px 1fr 340px; gap: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.thumb-col { border-right: 1px solid #eee; padding: 10px 8px; display: flex; flex-direction: column; gap: 6px; background: #fff; min-height: 440px; }
+.thumb {
+  width: 58px; height: 58px;
+  border: 1.5px solid transparent; border-radius: 4px;
+  cursor: pointer; object-fit: cover;
+  background: #f7f7f7;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #aaa; text-align: center;
+  overflow: hidden; flex-shrink: 0;
+  transition: border-color 0.12s;
+}
+.thumb.active { border-color: #e47911; }
+.thumb:hover:not(.active) { border-color: #999; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-upload {
+  width: 58px; height: 58px;
+  border: 1.5px dashed #bbb; border-radius: 4px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #bbb; flex-shrink: 0;
+  transition: border-color 0.12s, color 0.12s;
+}
+.thumb-upload:hover { border-color: #e47911; color: #e47911; }
+.main-img-wrap {
+  border-right: 1px solid #eee;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 440px; background: #fff; position: relative; cursor: zoom-in;
+}
+.main-img-wrap img { max-width: 100%; max-height: 440px; object-fit: contain; padding: 16px; }
+.main-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #aaa; font-size: 13px; }
+.main-placeholder .icon { font-size: 44px; }
+.details { padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.brand-link { font-size: 12px; color: #0066c0; cursor: pointer; }
+.brand-link:hover { text-decoration: underline; color: #c45500; }
+.title-field { font-size: 14px; font-weight: 500; line-height: 1.45; color: #0F1111; }
+.stars { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.star-row { color: #e47911; font-size: 15px; letter-spacing: 1px; }
+.reviews-link { color: #0066c0; font-size: 12px; }
+.price-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.price-main { font-size: 22px; font-weight: 400; color: #B12704; }
+.price-main sup { font-size: 13px; vertical-align: super; }
+.price-orig { font-size: 12px; color: #565959; text-decoration: line-through; }
+.price-badge { background: #e47911; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; }
+.divider { border: none; border-top: 1px solid #eee; }
+.section-label { font-size: 13px; color: #0F1111; margin-bottom: 8px; }
+.section-label strong { font-weight: 600; }
+.color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 46px; height: 46px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; overflow: hidden; transition: border-color 0.12s; }
+.swatch.active { border-color: #e47911; box-shadow: 0 0 0 1px #e47911; }
+.swatch:hover:not(.active) { border-color: #555; }
+.swatch img { width: 100%; height: 100%; object-fit: cover; }
+.swatch-empty { width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #aaa; }
+.swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.swatch-label { font-size: 10px; color: #555; max-width: 46px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sizes { display: flex; gap: 6px; flex-wrap: wrap; }
+.size-btn {
+  padding: 6px 14px; border: 1px solid #888; border-radius: 4px;
+  font-size: 13px; cursor: pointer; background: #fff; color: #0F1111;
+  transition: background 0.1s, border-color 0.1s;
+}
+.size-btn:hover { background: #f5f5f5; }
+.size-btn.active { border: 2px solid #e47911; font-weight: 600; }
+.add-btn {
+  background: #ffa41c; border: 1px solid #ff8f00; border-radius: 20px;
+  padding: 9px 0; text-align: center; font-size: 14px; font-weight: 600;
+  cursor: pointer; color: #111; transition: background 0.12s;
+}
+.add-btn:hover { background: #fa8900; }
+.buy-btn {
+  background: #ff9900; border: 1px solid #e47911; border-radius: 20px;
+  padding: 9px 0; text-align: center; font-size: 14px; font-weight: 600;
+  cursor: pointer; color: #111; transition: background 0.12s;
+}
+.buy-btn:hover { background: #e68a00; }
+.hint { font-size: 11px; color: #999; font-style: italic; line-height: 1.5; }
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 10px; padding: 24px;
+  width: min(500px, 94vw); display: flex; flex-direction: column;
+  gap: 14px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.modal h3 { font-size: 16px; font-weight: 600; }
+.modal-close {
+  position: absolute; top: 14px; right: 16px;
+  font-size: 20px; cursor: pointer; color: #666;
+  background: none; border: none; line-height: 1;
+}
+.modal-close:hover { color: #111; }
+.color-setup { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+.color-item {
+  display: flex; gap: 10px; align-items: center;
+  background: #f7f7f7; border-radius: 6px; padding: 10px 12px;
+}
+.color-item .field { flex: 1; }
+.color-item input[type=text] { width: 100%; }
+.color-thumb-preview {
+  width: 32px; height: 32px; border-radius: 4px;
+  object-fit: cover; background: #e8e8e8;
+  border: 1px solid #ddd; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #aaa; overflow: hidden;
+}
+.color-thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+.remove-btn { padding: 5px 10px; font-size: 12px; color: #B12704; border-color: #B12704; }
+.remove-btn:hover { background: #fff5f5; }
+.btn-save { background: #0066c0; color: #fff; border-color: #004a99; font-weight: 600; }
+.btn-save:hover { background: #004a99; }
+.btn-save:disabled { background: #7aabdd; border-color: #7aabdd; cursor: not-allowed; }
+.btn-reset:hover { background: #fff5f5; color: #B12704; border-color: #e8a090; }
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: #222; color: #fff; font-size: 13px; padding: 10px 22px; border-radius: 8px;
+  opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; z-index: 999;
+  white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: #B12704; }
+.shared-banner {
+  display: none; align-items: center; gap: 8px;
+  background: #e8f4fd; border: 1px solid #b3d7f0; border-radius: 6px;
+  padding: 9px 16px; margin-bottom: 16px; font-size: 13px; color: #0066c0;
+}
+.shared-banner.visible { display: flex; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="page-title">Amazon Listing Preview Tool</h1>
+  <div class="shared-banner" id="shared-banner">
+    <span>&#128065;</span>
+    <span>You are viewing a shared listing &mdash; click <strong>Reset</strong> to start fresh.</span>
+  </div>
+
+  <div class="toolbar">
+    <h2>Listing setup</h2>
+    <div class="toolbar-row">
+      <div class="field">
+        <label>Product title</label>
+        <input type="text" id="prod-title" style="width:320px;" value="DANISH ENDURANCE Hiking Pants Men, Water-Repellent Softshell Trousers">
+      </div>
+      <div class="field">
+        <label>Brand</label>
+        <input type="text" id="prod-brand" style="width:140px;" value="DANISH ENDURANCE">
+      </div>
+      <div class="field">
+        <label>Price</label>
+        <input type="text" id="prod-price" style="width:90px;" value="£49.99">
+      </div>
+      <div class="field">
+        <label>Original price</label>
+        <input type="text" id="prod-orig" style="width:90px;" value="£59.99">
+      </div>
+      <button class="btn btn-primary" onclick="applyMeta()">Apply</button>
+      <button class="btn" onclick="openColorSetup()">Manage color variants</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end;">
+        <button class="btn btn-save" id="save-btn" onclick="saveListing()">Save &amp; Share</button>
+        <button class="btn btn-reset" onclick="resetListing()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="listing">
+    <div class="thumb-col" id="thumb-col"></div>
+    <div class="main-img-wrap" id="main-wrap">
+      <div class="main-placeholder">
+        <div class="icon">🖼</div>
+        <div>Upload images using the panel on the left</div>
+        <div style="margin-top:8px;"><button class="btn btn-primary" onclick="triggerThumbUpload()">Upload first image</button></div>
+      </div>
+    </div>
+    <div class="details">
+      <div class="brand-link" id="disp-brand">Visit the DANISH ENDURANCE Store</div>
+      <div class="title-field" id="disp-title">DANISH ENDURANCE Hiking Pants Men, Water-Repellent Softshell Trousers</div>
+      <div class="stars">
+        <span class="star-row">★★★★☆</span>
+        <span class="reviews-link">4.9</span>
+        <span style="color:#565959;">(23)</span>
+      </div>
+      <hr class="divider">
+      <div class="price-row">
+        <span class="price-badge" id="disp-badge">–16%</span>
+        <span class="price-main" id="disp-price">£49.99</span>
+        <span style="font-size:12px;color:#565959;">RRP: </span>
+        <span class="price-orig" id="disp-orig">£59.99</span>
+      </div>
+      <hr class="divider">
+      <div>
+        <div class="section-label">Colour: <strong id="active-color-label">Dark Navy / Black</strong></div>
+        <div class="color-swatches" id="swatches-row"></div>
+      </div>
+      <div>
+        <div class="section-label">Size:</div>
+        <div class="sizes" id="sizes-row"></div>
+      </div>
+      <div class="add-btn">Add to Basket</div>
+      <div class="buy-btn">Buy Now</div>
+      <div class="hint">Click thumbnails on the left to switch images &bull; Click "Manage color variants" to add/edit colour options &bull; Upload images per colour variant separately</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="color-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeColorSetup()">✕</button>
+    <h3>Colour variants</h3>
+    <div id="color-list" class="color-setup"></div>
+    <button class="btn" onclick="addColor()" style="align-self:flex-start;">+ Add colour</button>
+    <button class="btn btn-primary" onclick="closeColorSetup()">Done</button>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" multiple style="display:none">
+<input type="file" id="swatch-input" accept="image/*" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+// ── Firebase setup ────────────────────────────────────────────────────────────
+// After creating your Firebase project, replace all "REPLACE_ME" values below.
+// Instructions: https://console.firebase.google.com → your project → Project settings → Web app
+const firebaseConfig = {
+  apiKey: "AIzaSyDueL-OAYhCG5aQCoF2mWX85SnW3cAcwFg",
+  authDomain: "listing-preview-c4bf8.firebaseapp.com",
+  projectId: "listing-preview-c4bf8",
+  storageBucket: "listing-preview-c4bf8.firebasestorage.app",
+  messagingSenderId: "370827952890",
+  appId: "1:370827952890:web:322c434b3a5797c2c53f43"
+};
+const firebaseReady = firebaseConfig.apiKey !== "AIzaSyDueL-OAYhCG5aQCoF2mWX85SnW3cAcwFg";
+let db, storage;
+if (firebaseReady) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  storage = firebase.storage();
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+let colors = [
+  { name: "Dark Navy / Black", swatchImg: null, images: [], activeImg: null },
+  { name: "Black", swatchImg: null, images: [], activeImg: null },
+  { name: "Olive", swatchImg: null, images: [], activeImg: null }
+];
+let activeColorIdx = 0;
+let pendingSwatchIdx = null;
+const sizes = ["M","L","XL","XXL"];
+let activeSize = "L";
+
+function renderSizes() {
+  document.getElementById("sizes-row").innerHTML = sizes.map(s =>
+    `<div class="size-btn ${s===activeSize?'active':''}" onclick="setSize('${s}')">${s}</div>`
+  ).join("");
+}
+function setSize(s) { activeSize=s; renderSizes(); }
+
+function renderSwatches() {
+  document.getElementById("swatches-row").innerHTML = colors.map((c,i) => {
+    const inner = c.swatchImg
+      ? `<img src="${c.swatchImg}" alt="${c.name}">`
+      : `<div class="swatch-empty">+</div>`;
+    return `<div class="swatch-wrap">
+      <div class="swatch ${i===activeColorIdx?'active':''}" onclick="selectColor(${i})" title="${c.name}">${inner}</div>
+      <div class="swatch-label">${c.name}</div>
+    </div>`;
+  }).join("");
+}
+
+function selectColor(i) {
+  activeColorIdx = i;
+  document.getElementById("active-color-label").textContent = colors[i].name;
+  renderSwatches();
+  renderThumbs();
+  showMain(colors[i].activeImg);
+}
+
+function renderThumbs() {
+  const col = document.getElementById("thumb-col");
+  const imgs = colors[activeColorIdx].images;
+  let html = imgs.map((src,i) =>
+    `<div class="thumb ${src===colors[activeColorIdx].activeImg?'active':''}" onclick="selectThumb(${i})"><img src="${src}" alt="Thumbnail ${i+1}"></div>`
+  ).join("");
+  html += `<div class="thumb-upload" onclick="triggerThumbUpload()" title="Upload image">+</div>`;
+  col.innerHTML = html;
+}
+
+function selectThumb(i) {
+  colors[activeColorIdx].activeImg = colors[activeColorIdx].images[i];
+  renderThumbs();
+  showMain(colors[activeColorIdx].activeImg);
+}
+
+function showMain(src) {
+  const wrap = document.getElementById("main-wrap");
+  if (src) {
+    wrap.innerHTML = `<img src="${src}" alt="Main product image">`;
+  } else {
+    wrap.innerHTML = `<div class="main-placeholder"><div class="icon">🖼</div><div>Upload images using the panel on the left</div><div style="margin-top:8px;"><button class="btn btn-primary" onclick="triggerThumbUpload()">Upload first image</button></div></div>`;
+  }
+}
+
+function triggerThumbUpload() {
+  const inp = document.getElementById("file-input");
+  inp.value = "";
+  inp.click();
+}
+
+document.getElementById("file-input").addEventListener("change", function(e) {
+  const files = Array.from(e.target.files);
+  let loaded = 0;
+  files.forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => {
+      colors[activeColorIdx].images.push(ev.target.result);
+      if (!colors[activeColorIdx].activeImg) {
+        colors[activeColorIdx].activeImg = ev.target.result;
+        if (!colors[activeColorIdx].swatchImg) colors[activeColorIdx].swatchImg = ev.target.result;
+      }
+      loaded++;
+      if (loaded === files.length) {
+        renderThumbs();
+        showMain(colors[activeColorIdx].activeImg);
+        renderSwatches();
+      }
+    };
+    r.readAsDataURL(f);
+  });
+});
+
+document.getElementById("swatch-input").addEventListener("change", function(e) {
+  if (!e.target.files.length || pendingSwatchIdx === null) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    colors[pendingSwatchIdx].swatchImg = ev.target.result;
+    pendingSwatchIdx = null;
+    renderSwatches();
+    renderColorList();
+  };
+  r.readAsDataURL(e.target.files[0]);
+});
+
+function applyMeta() {
+  document.getElementById("disp-brand").textContent = "Visit the " + document.getElementById("prod-brand").value + " Store";
+  document.getElementById("disp-title").textContent = document.getElementById("prod-title").value;
+  const p = document.getElementById("prod-price").value;
+  const o = document.getElementById("prod-orig").value;
+  document.getElementById("disp-price").textContent = p;
+  document.getElementById("disp-orig").textContent = o;
+  try {
+    const pn = parseFloat(p.replace(/[^0-9.]/g,""));
+    const on = parseFloat(o.replace(/[^0-9.]/g,""));
+    if (on > pn) {
+      document.getElementById("disp-badge").textContent = `–${Math.round((on-pn)/on*100)}%`;
+    }
+  } catch(e) {}
+}
+
+function openColorSetup() {
+  renderColorList();
+  document.getElementById("color-modal").classList.add("open");
+}
+function closeColorSetup() {
+  document.getElementById("color-modal").classList.remove("open");
+  renderSwatches();
+}
+
+function renderColorList() {
+  document.getElementById("color-list").innerHTML = colors.map((c,i) => {
+    const swatchEl = c.swatchImg
+      ? `<div class="color-thumb-preview" onclick="triggerSwatchUpload(${i})"><img src="${c.swatchImg}" alt="Swatch"></div>`
+      : `<div class="color-thumb-preview" onclick="triggerSwatchUpload(${i})">+</div>`;
+    return `<div class="color-item">
+      ${swatchEl}
+      <div class="field">
+        <label>Colour name</label>
+        <input type="text" value="${c.name}" oninput="colors[${i}].name=this.value">
+      </div>
+      <button class="btn remove-btn" onclick="removeColor(${i})">Remove</button>
+    </div>`;
+  }).join("");
+}
+
+function triggerSwatchUpload(i) {
+  pendingSwatchIdx = i;
+  const inp = document.getElementById("swatch-input");
+  inp.value = "";
+  inp.click();
+}
+
+function addColor() {
+  colors.push({ name: "New colour", swatchImg: null, images: [], activeImg: null });
+  renderColorList();
+}
+
+function removeColor(i) {
+  if (colors.length <= 1) return;
+  colors.splice(i, 1);
+  if (activeColorIdx >= colors.length) activeColorIdx = colors.length - 1;
+  renderColorList();
+  renderSwatches();
+}
+
+renderThumbs();
+renderSwatches();
+renderSizes();
+applyMeta();
+loadFromUrl();
+
+// ── Toast notification ────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, isError) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast" + (isError ? " error" : "");
+  void t.offsetWidth;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// ── Save & Share ──────────────────────────────────────────────────────────────
+async function uploadDataUrl(dataUrl, path) {
+  const ref = storage.ref(path);
+  await ref.putString(dataUrl, "data_url");
+  return ref.getDownloadURL();
+}
+
+async function saveListing() {
+  if (!firebaseReady) {
+    showToast("Configure Firebase first — fill in the firebaseConfig values.", true);
+    return;
+  }
+  const btn = document.getElementById("save-btn");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  try {
+    const id = crypto.randomUUID();
+    const savedColors = [];
+    for (let i = 0; i < colors.length; i++) {
+      const c = colors[i];
+      let swatchUrl = c.swatchImg || null;
+      if (swatchUrl && swatchUrl.startsWith("data:")) {
+        swatchUrl = await uploadDataUrl(swatchUrl, `listings/${id}/c${i}/swatch`);
+      }
+      const imageUrls = [];
+      for (let j = 0; j < c.images.length; j++) {
+        let url = c.images[j];
+        if (url && url.startsWith("data:")) {
+          url = await uploadDataUrl(url, `listings/${id}/c${i}/img${j}`);
+        }
+        imageUrls.push(url);
+      }
+      savedColors.push({ name: c.name, swatchUrl, images: imageUrls });
+    }
+    await db.collection("listings").doc(id).set({
+      title: document.getElementById("prod-title").value,
+      brand: document.getElementById("prod-brand").value,
+      price: document.getElementById("prod-price").value,
+      origPrice: document.getElementById("prod-orig").value,
+      colors: savedColors,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const shareUrl = `${location.origin}${location.pathname}?id=${id}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("Link copied to clipboard!");
+    } catch {
+      prompt("Copy this link to share:", shareUrl);
+    }
+  } catch (err) {
+    showToast("Error saving: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save & Share";
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetListing() {
+  if (!confirm("Reset all images and return to defaults?")) return;
+  colors = [{ name: "Color 1", swatchImg: null, images: [], activeImg: null }];
+  activeColorIdx = 0;
+  activeSize = "L";
+  document.getElementById("prod-title").value = "";
+  document.getElementById("prod-brand").value = "";
+  document.getElementById("prod-price").value = "";
+  document.getElementById("prod-orig").value = "";
+  document.getElementById("disp-brand").textContent = "Visit the Store";
+  document.getElementById("disp-title").textContent = "";
+  document.getElementById("disp-price").textContent = "";
+  document.getElementById("disp-orig").textContent = "";
+  document.getElementById("disp-badge").textContent = "";
+  document.getElementById("active-color-label").textContent = "Color 1";
+  document.getElementById("shared-banner").classList.remove("visible");
+  history.replaceState({}, "", location.pathname);
+  renderSizes();
+  renderSwatches();
+  renderThumbs();
+  showMain(null);
+}
+
+// ── Load from shared URL ──────────────────────────────────────────────────────
+async function loadFromUrl() {
+  if (!firebaseReady) return;
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) return;
+  showToast("Loading shared listing…");
+  try {
+    const doc = await db.collection("listings").doc(id).get();
+    if (!doc.exists) { showToast("Listing not found.", true); return; }
+    const data = doc.data();
+    document.getElementById("prod-title").value = data.title || "";
+    document.getElementById("prod-brand").value = data.brand || "";
+    document.getElementById("prod-price").value = data.price || "";
+    document.getElementById("prod-orig").value = data.origPrice || "";
+    colors = (data.colors || []).map(c => ({
+      name: c.name || "",
+      swatchImg: c.swatchUrl || null,
+      images: c.images || [],
+      activeImg: (c.images && c.images[0]) || null
+    }));
+    if (!colors.length) colors = [{ name: "Color 1", swatchImg: null, images: [], activeImg: null }];
+    activeColorIdx = 0;
+    applyMeta();
+    renderSizes();
+    renderSwatches();
+    renderThumbs();
+    showMain(colors[0].activeImg);
+    document.getElementById("active-color-label").textContent = colors[0].name;
+    document.getElementById("shared-banner").classList.add("visible");
+    showToast("Shared listing loaded!");
+  } catch (err) {
+    showToast("Failed to load listing: " + err.message, true);
+  }
+}
+</script>
+</body>
+</html>
