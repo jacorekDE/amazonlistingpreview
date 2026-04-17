@@ -49,6 +49,7 @@ h1.page-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 2
   cursor: pointer; padding: 0;
 }
 .thumb:hover .thumb-delete { display: block; }
+body.shared-view .thumb-delete { display: none !important; }
 .thumb-upload {
   width: 58px; height: 58px;
   border: 1.5px dashed #bbb; border-radius: 4px;
@@ -326,7 +327,6 @@ const IMGBB_API_KEY = "96095dca044f6a5a5a021a60ac39555d";
 
 const appReady = true;
 let db;
-let sharedView = false;
 if (appReady) {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
@@ -374,7 +374,7 @@ function renderThumbs() {
   const col = document.getElementById("thumb-col");
   const imgs = colors[activeColorIdx].images;
   let html = imgs.map((src,i) =>
-    `<div class="thumb ${src===colors[activeColorIdx].activeImg?'active':''}" onclick="selectThumb(${i})"><img src="${src}" alt="Thumbnail ${i+1}">${sharedView ? "" : `<button class="thumb-delete" onclick="deleteThumb(event,${i})" title="Remove image">&times;</button>`}</div>`
+    `<div class="thumb ${src===colors[activeColorIdx].activeImg?'active':''}" onclick="selectThumb(${i})"><img src="${src}" alt="Thumbnail ${i+1}"><button class="thumb-delete" onclick="deleteThumb(event,${i})" title="Remove image">&times;</button></div>`
   ).join("");
   html += `<div class="thumb-upload" onclick="triggerThumbUpload()" title="Upload image">+</div>`;
   col.innerHTML = html;
@@ -574,7 +574,7 @@ async function saveListing() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     const shareUrl = `${location.origin}${location.pathname}?id=${id}`;
-    sharedView = true;
+    document.body.classList.add("shared-view");
     renderThumbs();
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -593,7 +593,7 @@ async function saveListing() {
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetListing() {
   if (!confirm("Reset all images and return to defaults?")) return;
-  sharedView = false;
+  document.body.classList.remove("shared-view");
   colors = [{ name: "Color 1", swatchImg: null, images: [], activeImg: null }];
   activeColorIdx = 0;
   activeSize = "L";
@@ -653,7 +653,7 @@ async function loadFromUrl() {
     renderThumbs();
     showMain(colors[0].activeImg);
     document.getElementById("active-color-label").textContent = colors[0].name;
-    sharedView = true;
+    document.body.classList.add("shared-view");
     banner.innerHTML = "&#128065; You are viewing a shared listing &mdash; click <strong>Reset</strong> to start fresh.";
     banner.style = "";
   } catch (err) {
