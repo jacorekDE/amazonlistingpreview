@@ -247,11 +247,8 @@ h1.page-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 2
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
-// ── Firebase setup ────────────────────────────────────────────────────────────
-// After creating your Firebase project, replace all "REPLACE_ME" values below.
-// Instructions: https://console.firebase.google.com → your project → Project settings → Web app
+// ── Firebase (Firestore for listing metadata) ─────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyDueL-OAYhCG5aQCoF2mWX85SnW3cAcwFg",
   authDomain: "listing-preview-c4bf8.firebaseapp.com",
@@ -260,12 +257,15 @@ const firebaseConfig = {
   messagingSenderId: "370827952890",
   appId: "1:370827952890:web:322c434b3a5797c2c53f43"
 };
-const firebaseReady = firebaseConfig.apiKey !== "REPLACE_ME";
-let db, storage;
-if (firebaseReady) {
+
+// ── ImgBB (free image hosting — get your key at imgbb.com) ───────────────────
+const IMGBB_API_KEY = "REPLACE_ME";
+
+const appReady = firebaseConfig.apiKey !== "REPLACE_ME" && IMGBB_API_KEY !== "REPLACE_ME";
+let db;
+if (appReady) {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  storage = firebase.storage();
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -451,15 +451,20 @@ function showToast(msg, isError) {
 }
 
 // ── Save & Share ──────────────────────────────────────────────────────────────
-async function uploadDataUrl(dataUrl, path) {
-  const ref = storage.ref(path);
-  await ref.putString(dataUrl, "data_url");
-  return ref.getDownloadURL();
+async function uploadDataUrl(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const form = new FormData();
+  form.append("key", IMGBB_API_KEY);
+  form.append("image", base64);
+  const res = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: form });
+  const json = await res.json();
+  if (!json.success) throw new Error("ImgBB: " + (json.error?.message || "upload failed"));
+  return json.data.url;
 }
 
 async function saveListing() {
-  if (!firebaseReady) {
-    showToast("Configure Firebase first — fill in the firebaseConfig values.", true);
+  if (!appReady) {
+    showToast("Add your ImgBB API key to the IMGBB_API_KEY value in the code.", true);
     return;
   }
   const btn = document.getElementById("save-btn");
@@ -472,13 +477,13 @@ async function saveListing() {
       const c = colors[i];
       let swatchUrl = c.swatchImg || null;
       if (swatchUrl && swatchUrl.startsWith("data:")) {
-        swatchUrl = await uploadDataUrl(swatchUrl, `listings/${id}/c${i}/swatch`);
+        swatchUrl = await uploadDataUrl(swatchUrl);
       }
       const imageUrls = [];
       for (let j = 0; j < c.images.length; j++) {
         let url = c.images[j];
         if (url && url.startsWith("data:")) {
-          url = await uploadDataUrl(url, `listings/${id}/c${i}/img${j}`);
+          url = await uploadDataUrl(url);
         }
         imageUrls.push(url);
       }
@@ -533,7 +538,7 @@ function resetListing() {
 
 // ── Load from shared URL ──────────────────────────────────────────────────────
 async function loadFromUrl() {
-  if (!firebaseReady) return;
+  if (!appReady) return;
   const id = new URLSearchParams(location.search).get("id");
   if (!id) return;
   showToast("Loading shared listing…");
