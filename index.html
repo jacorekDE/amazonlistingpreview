@@ -153,6 +153,59 @@ h1.page-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 2
   padding: 9px 16px; margin-bottom: 16px; font-size: 13px; color: #0066c0;
 }
 .shared-banner.visible { display: flex; }
+
+@media (max-width: 700px) {
+  body { padding: 10px; }
+  h1.page-title { font-size: 15px; margin-bottom: 14px; }
+
+  /* Toolbar: let inputs fill available width */
+  .toolbar { padding: 12px 14px; }
+  .toolbar-row { gap: 8px; }
+  .field input { width: 100% !important; }
+  .field { flex: 1 1 140px; }
+
+  /* Save/Reset buttons: push to their own row */
+  .toolbar-row > div:last-child { margin-left: 0 !important; width: 100%; }
+
+  /* Listing: single column, reordered */
+  .listing {
+    display: flex;
+    flex-direction: column;
+    border-radius: 6px;
+  }
+
+  /* 1. Main image on top */
+  .main-img-wrap {
+    order: 1;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    min-height: 260px;
+  }
+  .main-img-wrap img { max-height: 260px; }
+
+  /* 2. Thumbnails: horizontal scrollable strip */
+  .thumb-col {
+    order: 2;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-height: unset;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    padding: 8px 10px;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .thumb-col::-webkit-scrollbar { display: none; }
+  .thumb, .thumb-upload { flex-shrink: 0; }
+
+  /* 3. Product details below */
+  .details { order: 3; }
+
+  /* Swatches & sizes wrap nicely */
+  .color-swatches, .sizes { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
